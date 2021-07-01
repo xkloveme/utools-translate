@@ -1,0 +1,18 @@
+{
+  "pluginName": "快翻",
+  "description": "快捷翻译",
+  "version": "1.0.0",
+  "main": "dist/index.html",
+  "preload": "preload.js",
+  "author": "xkloveme",
+  "homepage": "https://github.com/xkloveme",
+  "logo": "icon.png",
+  "features": [
+    {
+      "code": "快翻",
+      "explain": "翻译",
+      "cmds": ["翻译", "ts", "translate", "tr", "trans", "快翻","快捷"],
+      "icon": "icon.png"
+    }
+  ]
+}
