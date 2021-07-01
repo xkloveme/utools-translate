@@ -2,14 +2,16 @@
   <main>
     <div>
       <textarea
-        rows="5"
+        rows="10"
         class="
           shadow-sm
           focus:ring-indigo-500
           focus-visible:ring-indigo-500
           focus:border-indigo-500
           focus-visible:border-indigo-500
-          focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent
+          focus:outline-none
+          focus:ring-2 focus:ring-purple-600
+          focus:border-transparent
           block
           w-full
           sm:text-sm
@@ -31,8 +33,8 @@
                 <a
                   @click="getTrans(item, i)"
                   class="
-                    px-3
-                    py-2
+                    px-5
+                    py-4
                     rounded-md
                     text-sm
                     font-medium
@@ -157,9 +159,27 @@
   </nav>
 
   <header class="bg-white shadow" v-if="res.text">
-    <div class="max-w-screen-xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div
+      class="max-w-screen-xl mx-auto py-6 px-4 sm:px-6 lg:px-8 cursor-pointer"
+      @click="copy"
+    >
       <h1 class="text-3xl font-bold leading-tight text-gray-900">
         {{ res.text }}
+        <button
+          class="
+            px-1
+            float-right
+            inline-block
+            rounded-md
+            border border-gray-300
+            focus:outline-none
+            focus:ring-2 focus:ring-purple-600
+          "
+          type="button"
+          @click="copy"
+        >
+          ⌘ + 1
+        </button>
       </h1>
     </div>
   </header>
@@ -167,8 +187,8 @@
 
 <script>
 import { defineComponent } from 'vue'
+import Vuex from 'vuex'
 import { translate } from './../google-translate-cn-api/lib/index.js'
-// const translate = require("google-translate-cn-api");
 export default defineComponent({
   data: () => ({
     value: '',
@@ -179,7 +199,7 @@ export default defineComponent({
       { text: '中文', to: 'zh-cn' },
     ],
     res: {
-      text: '英文',
+      text: '',
       from: {
         language: { didYouMean: false, iso: 'zh-CN' },
         text: { autoCorrected: false, value: '你好世界', didYouMean: true },
@@ -187,8 +207,25 @@ export default defineComponent({
       raw: '',
     },
   }),
+  components:{Toast},
+  computed: {
+    ...Vuex.mapState(['keyword', 'completeList']),
+  },
+  mounted() {
+    // this.$store.commit('setKeyword', this.value)
+    // this.$store.dispatch('AUTO_COMPLETE')
+    utools &&
+      utools.setSubInput(({ text }) => {
+        this.value = text
+        if (text) {
+          setTimeout(() => {
+            this.getTrans(text)
+          }, 500)
+        }
+      }, '翻译')
+  },
   methods: {
-    getTrans(name, i) {
+    getTrans(name, i = 0) {
       this.isExactActive = i
       console.log(
         '🐛 ~ file: Home.vue ~ line 286 ~ getTrans ~ name',
@@ -202,6 +239,31 @@ export default defineComponent({
         })
         .catch(console.error)
     },
+    open(url) {
+      window.openExternal(url)
+    },
+    copy() {
+      console.log('复制成功')
+      this.getValue()
+      utools&&utools.copyText(this.value)
+      utools&&utools.showNotification('复制成功')
+    },
+    getValue(){
+      const textarea = document.createElement('textarea')
+      textarea.readOnly = 'readonly'
+      textarea.style.position = 'absolute'
+      textarea.style.left = '-9999px'
+      // 将要 copy 的值赋给 textarea 标签的 value 属性
+      textarea.value = this.value
+      // 将 textarea 插入到 body 中
+      document.body.appendChild(textarea)
+      // 选中值并复制
+      textarea.select()
+      const result = document.execCommand('Copy')
+      if(result){
+        console.log('复制成功')
+      }
+    }
   },
 })
 </script>

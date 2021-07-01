@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import './assets/main.css'
 import App from './App.vue'
 import { routes } from './routes.js'
+import store from './store/index.js'
 import { createRouter, createWebHistory } from 'vue-router'
 
 let app = createApp(App)
@@ -28,6 +29,7 @@ if (import.meta.hot) {
 }
 
 app.use(router)
+app.use(store)
 
 
 if (window.utools) {
@@ -36,5 +38,6 @@ if (window.utools) {
     app.mount('#app')
   });
 } else {
+  window.utools =null
   app.mount('#app');
 }

@@ -13,7 +13,7 @@ function request (url, data, method = 'POST') {
   let options = {
     method: method,
     //允许跨域携带资源凭证 same-origin 同源可以 omit都拒绝
-    credentials: 'include', //不管同源不同元都可以携带资源凭证
+    // credentials: 'include', //不管同源不同元都可以携带资源凭证
     redirect: 'follow',
     //设置请求头
     headers: myHeaders,

@@ -11,7 +11,14 @@
     {
       "code": "快翻",
       "explain": "翻译",
-      "cmds": ["翻译", "ts", "translate", "tr", "trans", "快翻","快捷"],
+      "cmds": ["翻译", "ts", "translate", "tr", "trans", "快翻","快捷",
+        {
+          "type": "regex",
+          "label": "翻译",
+          "match": "/[a-zA-Z\u4e00-\u9fa5]/gm",
+          "minLength": 1,
+          "maxLength": 50
+      }],
       "icon": "icon.png"
     }
   ]
