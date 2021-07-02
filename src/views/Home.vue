@@ -164,23 +164,26 @@
       class="max-w-screen-xl mx-auto py-6 px-4 sm:px-6 lg:px-8 cursor-pointer"
       @click="copy"
     >
-      <h1 class="text-3xl font-bold leading-tight text-gray-900">
+      <button
+        class="
+          px-1
+          float-right
+          inline-block
+          rounded-md
+          border border-gray-300
+          focus:outline-none
+          focus:ring-2 focus:ring-purple-600
+          font-bold
+          leading-tight
+          text-gray-900
+        "
+        type="button"
+        @click="copy"
+      >
+        ⌘ + 1
+      </button>
+      <h1 class="font-bold leading-tight text-gray-900">
         {{ result.text }}
-        <button
-          class="
-            px-1
-            float-right
-            inline-block
-            rounded-md
-            border border-gray-300
-            focus:outline-none
-            focus:ring-2 focus:ring-purple-600
-          "
-          type="button"
-          @click="copy"
-        >
-          ⌘ + 1
-        </button>
       </h1>
     </div>
   </header>
@@ -242,7 +245,7 @@ export default defineComponent({
     ],
   }),
   computed: {
-    ...Vuex.mapState(['translateResult','result']),
+    ...Vuex.mapState(['translateResult', 'result']),
   },
   mounted() {
     let self = this
@@ -251,6 +254,10 @@ export default defineComponent({
       var ctrlKey = e.ctrlKey || e.metaKey
       if (ctrlKey && keyCode == 49) {
         self.copy()
+        return false
+      }
+      if (ctrlKey && keyCode == 83) {
+        self.getTrans(this.isExactActive)
         return false
       }
     }
@@ -264,10 +271,23 @@ export default defineComponent({
         }
       }, '翻译')
   },
+  watch: {
+    value(val) {
+      if (val) {
+        //  utools &&
+        //     utools.setSubInput(({ text }) => {
+        //       this.value = text
+        //     }, '翻译')
+        // setTimeout(() => {
+        //   this.getTrans(this.isExactActive)
+        // }, 500)
+      }
+    },
+  },
   methods: {
     getTrans(i = this.isExactActive, name = { text: '英文', to: 'en' }) {
       this.isExactActive = i
-      localStorage.setItem("language",name.to)
+      localStorage.setItem('language', name.to)
       if (this.value) {
         this.$store.commit('setKeyword', this.value)
         this.$store.commit('setWebLanguage', name.to)
@@ -275,7 +295,8 @@ export default defineComponent({
       }
     },
     translate() {
-      this.$store.dispatch('WEB_TRANSLATE_KEYWORD',this.value).catch(() => {})
+      // utools&&utools.setSubInputValue(this.value)
+      this.$store.dispatch('WEB_TRANSLATE_KEYWORD', this.value).catch(() => {})
     },
     open(url) {
       window.openExternal(url)
