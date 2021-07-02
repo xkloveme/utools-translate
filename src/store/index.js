@@ -1,9 +1,9 @@
-import {createStore} from 'vuex'
-import { fixArrayError, saveAndSendMessage, getUILanguage, xss } from '../utils'
+import { createStore } from 'vuex'
+import { fixArrayError, saveAndSendMessage,handleBody, getUILanguage, xss } from '../utils'
 import { googleChina, googleNet } from '../services/hosts'
 import { fetchGoogleChina, fetchGoogleNet, fetchGoogleSearch, fetchGoogleTranslate, fetchGoogleSound } from '../services/api'
 import googleTK from '../services/googleTK'
-
+console.log(process.env.NODE_ENV, 88)
 const store = {
   state: {
     // 翻译的单词
@@ -13,11 +13,11 @@ const store = {
     // 自动检测源语言语种
     autoFromLanguage: '',
     // 目标语言
-    toLanguage: getUILanguage(),
+    toLanguage: localStorage.getItem("language")||getUILanguage(),
     // 所有语言
     languageLists: [],
     // 访问域名
-    googleHost: googleChina,
+    googleHost: process.env.NODE_ENV == 'development' ? 'api' : googleChina,
     // 谷歌 TKK
     googleTKK: '',
     // 单词自动匹配
@@ -38,7 +38,7 @@ const store = {
     // 播放速度
     speed: 1,
     userSetting: {
-      webLanguage: getUILanguage(),
+      webLanguage: localStorage.getItem("language")||getUILanguage(),
       doubleClick: true,
       stroke: true,
       pressKey: true,
@@ -49,10 +49,25 @@ const store = {
       audioSource: null,
       bgColor: '#ffffff',
     },
+    result:{
+      text: '',
+      from: {
+        language: {
+          didYouMean: false,
+          iso: ''
+        },
+        text: {
+          autoCorrected: false,
+          value: '',
+          didYouMean: false
+        }
+      },
+      raw: ''
+    }
   },
 
   mutations: {
-    reset(state) {
+    reset (state) {
       state.keyword = ''
       state.tryCount = 1
       state.translateResult = {
@@ -66,68 +81,69 @@ const store = {
       state.isShowMore = false
       state.completeList = []
     },
-    setKeyword(state, payload) {
+    setKeyword (state, payload) {
       state.speed = 1
       state.isShowMore = false
       const newKeyword = payload || ''
       state.keyword = newKeyword.trim()
     },
-    setGoogleTKK(state, payload) {
+    setGoogleTKK (state, payload) {
       state.googleTKK = payload
       // cache 1 day for google TKK
-      browser.storage.local.set({ googleTKK: {
-        value: payload,
-        expire: Date.now() + 86400000,
-      } })
+      // browser.storage.local.set({ googleTKK: {
+      //   value: payload,
+      //   expire: Date.now() + 86400000,
+      // } })
     },
-    setIsShowMore(state, payload) {
+    setIsShowMore (state, payload) {
       state.isShowMore = payload
     },
-    setFromLanguage(state, payload) {
+    setFromLanguage (state, payload) {
       state.fromLanguage = payload
       browser.storage.local.set({ fromLanguage: payload })
     },
-    setToLanguage(state, payload) {
+    setToLanguage (state, payload) {
       state.toLanguage = payload
       browser.storage.local.set({ toLanguage: payload })
     },
-    setWebLanguage(state, payload) {
+    setWebLanguage (state, payload) {
       state.userSetting.webLanguage = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setDoubleClick(state, payload) {
+    setDoubleClick (state, payload) {
       state.userSetting.doubleClick = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setStroke(state, payload) {
+    setStroke (state, payload) {
       state.userSetting.stroke = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setHover(state, payload) {
+    setHover (state, payload) {
       state.userSetting.hover = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setHoverTime(state, payload) {
+    setHoverTime (state, payload) {
       state.userSetting.hoverTime = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setPressKey(state, payload) {
+    setPressKey (state, payload) {
       state.userSetting.pressKey = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setPressKeyString(state, payload) {
+    setPressKeyString (state, payload) {
       state.userSetting.pressKeyString = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
+      // saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setAutoSound(state, payload) {
+    setAutoSound (state, payload) {
       state.userSetting.autoSound = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
     },
-    setBgColor(state, payload) {
+    setBgColor (state, payload) {
       state.userSetting.bgColor = payload
-      saveAndSendMessage({ userSetting: state.userSetting })
     },
-    stopSound(state) {
+    setResult (state, payload) {
+      state.result = payload
+    },
+    stopSound (state) {
       if (state.audioSource) {
         state.audioSource.stop()
       }
@@ -135,7 +151,7 @@ const store = {
   },
 
   actions: {
-    SYNC_USER_SETTING({ state }) {
+    SYNC_USER_SETTING ({ state }) {
       browser.storage.local.get('googleTKK', ({ googleTKK }) => {
         if (googleTKK && googleTKK.value && googleTKK.expire > Date.now()) {
           state.googleTKK = googleTKK.value
@@ -158,7 +174,7 @@ const store = {
         }
       })
     },
-    CHOOSE_LANGUAGE({ commit }, { type, value }) {
+    CHOOSE_LANGUAGE ({ commit }, { type, value }) {
       if (type === 'from') {
         commit('setFromLanguage', value)
       } else if (type === 'to') {
@@ -168,23 +184,24 @@ const store = {
       }
     },
 
-    GET_GOOGLE_HTML() {
+    GET_GOOGLE_HTML () {
       return Promise.race([
         fetchGoogleChina().then(html => ({ html, host: googleChina })),
         fetchGoogleNet().then(html => ({ html, host: googleNet })),
       ])
     },
-
-    AUTO_COMPLETE({ state }) {
+    // 自动匹配单词
+    AUTO_COMPLETE ({ state }) {
       if (!state.keyword || !~['auto', 'en'].indexOf(state.fromLanguage)) {
         return
       }
-// console.log(state.keyword,state.fromLanguage,99)
+      console.log(state.keyword, state.fromLanguage, 99)
       fetchGoogleSearch({
         webLanguage: state.userSetting.webLanguage,
         keyword: state.keyword,
       })
         .then(response => {
+          console.log('🐛 ~ file: index.js ~ line 188 ~ AUTO_COMPLETE ~ response', response)
           try {
             const lists = JSON.parse(response.slice(19, -1))[1]
             state.completeList = lists.map(v => v[0])
@@ -197,7 +214,7 @@ const store = {
         })
     },
 
-    WEB_TRANSLATE_KEYWORD({ state, commit, dispatch }, keyWord) {
+    WEB_TRANSLATE_KEYWORD ({ state, commit, dispatch }, keyWord) {
       commit('setKeyword', keyWord)
       state.tryCount = 1
       return dispatch('TRANSLATE_KEYWORD', {
@@ -205,8 +222,8 @@ const store = {
         toLanguage: state.userSetting.webLanguage,
       })
     },
-
-    TRANSLATE_KEYWORD({ state, commit, dispatch }, { fromLanguage, toLanguage, stop } = {}) {
+    // 翻译单词
+    TRANSLATE_KEYWORD ({ state, commit, dispatch }, { fromLanguage, toLanguage, stop } = {}) {
       if (!state.keyword) {
         commit('reset')
         return Promise.reject()
@@ -217,6 +234,7 @@ const store = {
         }
         state.tryCount--
         dispatch('GET_GOOGLE_TK', state.keyword).then(tk => {
+          console.log('888', tk)
           fetchGoogleTranslate({
             tk,
             host: state.googleHost,
@@ -227,6 +245,7 @@ const store = {
           })
             .then(fixArrayError)
             .then(response => {
+              commit('setResult', handleBody(response))
               state.tryCount = 1
               const result = {
                 keyword: '',
@@ -305,13 +324,14 @@ const store = {
             })
             .catch(() => {
               commit('setGoogleTKK', '')
-              dispatch('TRANSLATE_KEYWORD').catch(() => {})
+              dispatch('TRANSLATE_KEYWORD').catch(() => { })
             })
-        }).catch(() => {})
+        }).catch(() => { })
+            
       })
     },
-
-    GOOGLE_SOUND({ state, commit, dispatch }) {
+// 获取声音
+    GOOGLE_SOUND ({ state, commit, dispatch }) {
       commit('stopSound')
       dispatch('GET_GOOGLE_TK', state.keyword).then(tk => {
         fetchGoogleSound({
@@ -330,10 +350,10 @@ const store = {
           })
         })
         state.speed = state.speed === 1 ? 0.24 : 1
-      }).catch(() => {})
+      }).catch(() => { })
     },
-
-    GET_GOOGLE_TK({ state, commit }, keyword) {
+// 获取TK
+    GET_GOOGLE_TK ({ state, commit }, keyword) {
       if (state.googleTKK) {
         return Promise.resolve(googleTK(keyword))
       }

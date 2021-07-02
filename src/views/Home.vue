@@ -19,22 +19,23 @@
           rounded-md
         "
         v-model="value"
+        @click.enter="getTrans()"
         placeholder="翻译的内容"
       ></textarea>
     </div>
   </main>
   <nav class="bg-gray-800">
-    <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+    <div class="max-w-screen-xl mx-auto px-4 sm:px-4 lg:px-6">
+      <div class="flex items-center justify-between h-12">
         <div class="flex items-center">
           <div class="md:block">
             <div class="ml-10 flex items-baseline">
               <div v-for="(item, i) in links" :key="i" custom>
                 <a
-                  @click="getTrans(item, i)"
+                  @click="getTrans(i, item)"
                   class="
                     px-5
-                    py-4
+                    py-2
                     rounded-md
                     text-sm
                     font-medium
@@ -42,7 +43,7 @@
                   "
                   :class="[
                     isExactActive === i
-                      ? 'text-white bg-gray-900 focus:outline-none focus:text-white focus:bg-gray-700'
+                      ? 'text-white bg-purple-600 focus:outline-none focus:text-white focus:bg-gray-700'
                       : 'text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700',
                     i > 0 && 'ml-4',
                   ]"
@@ -158,13 +159,13 @@
     </div>
   </nav>
 
-  <header class="bg-white shadow" v-if="res.text">
+  <header class="bg-white shadow" v-if="result.text">
     <div
       class="max-w-screen-xl mx-auto py-6 px-4 sm:px-6 lg:px-8 cursor-pointer"
       @click="copy"
     >
       <h1 class="text-3xl font-bold leading-tight text-gray-900">
-        {{ res.text }}
+        {{ result.text }}
         <button
           class="
             px-1
@@ -183,87 +184,128 @@
       </h1>
     </div>
   </header>
+
+  <div
+    v-if="tips"
+    class="
+      fixed
+      right-1
+      top-1
+      animate-pulse
+      flex
+      w-full
+      max-w-xs
+      mx-auto
+      overflow-hidden
+      bg-white
+      rounded-lg
+      shadow-md
+      dark:bg-gray-800
+    "
+  >
+    <div class="flex items-center justify-center w-12 bg-green-500">
+      <svg
+        class="w-6 h-6 text-white fill-current"
+        viewBox="0 0 40 40"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M20 3.33331C10.8 3.33331 3.33337 10.8 3.33337 20C3.33337 29.2 10.8 36.6666 20 36.6666C29.2 36.6666 36.6667 29.2 36.6667 20C36.6667 10.8 29.2 3.33331 20 3.33331ZM16.6667 28.3333L8.33337 20L10.6834 17.65L16.6667 23.6166L29.3167 10.9666L31.6667 13.3333L16.6667 28.3333Z"
+        />
+      </svg>
+    </div>
+
+    <div class="px-4 py-2 -mx-3">
+      <div class="mx-3">
+        <span class="font-semibold text-green-500 dark:text-green-400"
+          >成功</span
+        >
+        <p class="text-sm text-gray-600 dark:text-gray-200">您已经复制成功!</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
 import Vuex from 'vuex'
-import { translate } from './../google-translate-cn-api/lib/index.js'
+// import { translate } from './../google-translate-cn-api/lib/index.js'
 export default defineComponent({
   data: () => ({
     value: '',
+    tips: false,
     isExactActive: 0,
     showProfileMenu: false,
     links: [
       { text: '英文', to: 'en' },
       { text: '中文', to: 'zh-cn' },
     ],
-    res: {
-      text: '',
-      from: {
-        language: { didYouMean: false, iso: 'zh-CN' },
-        text: { autoCorrected: false, value: '你好世界', didYouMean: true },
-      },
-      raw: '',
-    },
   }),
-  components:{Toast},
   computed: {
-    ...Vuex.mapState(['keyword', 'completeList']),
+    ...Vuex.mapState(['translateResult','result']),
   },
   mounted() {
-    // this.$store.commit('setKeyword', this.value)
-    // this.$store.dispatch('AUTO_COMPLETE')
+    let self = this
+    document.onkeydown = function (e) {
+      var keyCode = e.keyCode || e.which || e.charCode
+      var ctrlKey = e.ctrlKey || e.metaKey
+      if (ctrlKey && keyCode == 49) {
+        self.copy()
+        return false
+      }
+    }
     utools &&
       utools.setSubInput(({ text }) => {
         this.value = text
         if (text) {
           setTimeout(() => {
-            this.getTrans(text)
+            this.getTrans(this.isExactActive)
           }, 500)
         }
       }, '翻译')
   },
   methods: {
-    getTrans(name, i = 0) {
+    getTrans(i = this.isExactActive, name = { text: '英文', to: 'en' }) {
       this.isExactActive = i
-      console.log(
-        '🐛 ~ file: Home.vue ~ line 286 ~ getTrans ~ name',
-        this.value
-      )
-      translate(this.value, { to: name.to })
-        .then((res) => {
-          if (res) {
-            this.res = res
-          }
-        })
-        .catch(console.error)
+      localStorage.setItem("language",name.to)
+      if (this.value) {
+        this.$store.commit('setKeyword', this.value)
+        this.$store.commit('setWebLanguage', name.to)
+        this.translate()
+      }
+    },
+    translate() {
+      this.$store.dispatch('WEB_TRANSLATE_KEYWORD',this.value).catch(() => {})
     },
     open(url) {
       window.openExternal(url)
     },
     copy() {
-      console.log('复制成功')
       this.getValue()
-      utools&&utools.copyText(this.value)
-      utools&&utools.showNotification('复制成功')
+      utools && utools.copyText(this.res.text)
+      // utools && utools.showNotification('复制成功')
     },
-    getValue(){
+    getValue() {
+      this.tips = true
       const textarea = document.createElement('textarea')
       textarea.readOnly = 'readonly'
       textarea.style.position = 'absolute'
       textarea.style.left = '-9999px'
       // 将要 copy 的值赋给 textarea 标签的 value 属性
-      textarea.value = this.value
+      textarea.value = ''
+      textarea.value = this.result.text
       // 将 textarea 插入到 body 中
       document.body.appendChild(textarea)
       // 选中值并复制
       textarea.select()
       const result = document.execCommand('Copy')
-      if(result){
+      if (result) {
         console.log('复制成功')
       }
-    }
+      setTimeout(() => {
+        this.tips = false
+      }, 800)
+    },
   },
 })
 </script>

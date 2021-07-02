@@ -1,15 +1,50 @@
+var browser = browser || chrome;
+
+
+const checkStatus = response => {
+  if (response.status >= 200 && response.status < 300) {
+    return response
+  }
+  const error = new Error(response.statusText)
+  error.response = response
+  throw error
+}
+
 const $fetch = option => {
   if (!(option && option.url)) {
     console.log('option need object type or object.url key not pass')
   }
   return new Promise((resolve, reject) => {
-    browser.runtime.sendMessage(option, response => {
-      if (response && response.error) {
-        reject(response.error)
-      } else {
-        resolve(response)
-      }
-    })
+    const { url, type = 'text', params = {} } = option
+    if (url) {
+      fetch(url, params)
+        .then(checkStatus)
+        .then(response => {
+          switch (type) {
+          case 'text':
+            return response.text()
+          case 'json':
+            return response.json()
+          case 'arrayBuffer':
+            return response.arrayBuffer()
+          }
+        })
+        .then(response => {
+          if (type === 'arrayBuffer') {
+            /* eslint-disable */
+            return JSON.stringify(Array.apply(null, new Uint8Array(response)))
+            /* eslint-enable */
+          }
+          return response
+        })
+        .then(response => {
+          resolve(response)
+        })
+        .catch(error => {
+          reject(error)
+        })
+      return true
+    }
   }).then(response => {
     if (option.type === 'arrayBuffer') {
       return new Uint8Array(JSON.parse(response)).buffer
@@ -17,7 +52,6 @@ const $fetch = option => {
     return response
   })
 }
-var browser = browser || chrome;
 
 // 获取文字真实渲染宽高
 const getRect = node => {
@@ -70,7 +104,7 @@ const fixArrayError = responseText => {
 }
 
 const getUILanguage = () => {
-  let language = 'en'
+  let language = localStorage.getItem("language")||'en'
   if (language.slice(0, 2) === 'en') {
     language = 'en'
   }
@@ -213,6 +247,55 @@ const xss = word => {
   return s
 }
 
+function handleBody (raw, opts) {
+  const result = {
+    text: '',
+    from: {
+      language: {
+        didYouMean: false,
+        iso: ''
+      },
+      text: {
+        autoCorrected: false,
+        value: '',
+        didYouMean: false
+      }
+    },
+    raw: ''
+  };
+
+  if (opts&&opts.raw) result.raw = raw;
+
+  const body = raw;
+  body[0].forEach(function (obj) {
+    if (obj[0] !== null) result.text += obj[0];
+  });
+
+  if (body[2] === body[8][0][0]) {
+    result.from.language.iso = body[2];
+  } else {
+    result.from.language.didYouMean = true;
+    result.from.language.iso = body[8][0][0];
+  }
+
+  if (body[5] && body[5][0] && body[5][0][0]) {
+    let str = body[5][0][0];
+
+    str = str.replace(/<b><i>/g, '[');
+    str = str.replace(/<\/i><\/b>/g, ']');
+
+    result.from.text.value = str;
+
+    if (body[5][0][5] === 1) {
+      result.from.text.autoCorrected = true;
+    } else {
+      result.from.text.didYouMean = true;
+    }
+  }
+
+  return result;
+}
+
 export {
   $fetch,
   saveAndSendMessage,
@@ -222,4 +305,5 @@ export {
   getRangeFromPoint,
   getWordFromPoint,
   xss,
+  handleBody
 }

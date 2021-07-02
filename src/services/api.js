@@ -6,7 +6,7 @@ export const fetchGoogleChina = () => $fetch({ url: googleChina, type: 'text' })
 export const fetchGoogleNet = () => $fetch({ url: googleNet, type: 'text' })
 
 export const fetchGoogleSearch = option => {
-  const url = `https://clients1.google.com/complete/search?q=${option.keyword}&client=translate-web&ds=translate&hl=en`
+  const url = `https://clients1.google.cn/complete/search?q=${option.keyword}&client=translate-web&ds=translate&hl=en`
   return $fetch({ url, type: 'text' })
 }
 
