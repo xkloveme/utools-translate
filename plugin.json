@@ -16,8 +16,7 @@
           "type": "regex",
           "label": "翻译",
           "match": "/[a-zA-Z\u4e00-\u9fa5]/gm",
-          "minLength": 1,
-          "maxLength": 50
+          "minLength": 1
       }],
       "icon": "icon.png"
     }

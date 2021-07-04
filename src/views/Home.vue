@@ -76,7 +76,7 @@
                 >
                   <img
                     class="h-8 w-8 rounded-full"
-                    src="https://www.jixiaokang.com/medias/avatar.jpg"
+                    src="@/assets/avatar.jpg"
                     alt=""
                   />
                 </button>
@@ -262,14 +262,23 @@ export default defineComponent({
       }
     }
     utools &&
-      utools.setSubInput(({ text }) => {
-        this.value = text
-        if (text) {
+      utools.onPluginEnter(({ code, type, payload, optional }) => {
+        console.log('用户进入插件', code, type, payload)
+        utools &&
+          utools.setSubInput(({ text }) => {
+            if(text){
+              this.value = text
+            }
+          }, '翻译')
+        if (payload) {
+           this.value = payload
+        }
+        if (this.value) {
           setTimeout(() => {
             this.getTrans(this.isExactActive)
           }, 500)
         }
-      }, '翻译')
+      })
   },
   watch: {
     value(val) {

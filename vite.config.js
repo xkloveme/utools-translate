@@ -15,7 +15,7 @@ export default defineConfig({
     // 这里是将src目录配置别名为 /@ 方便在项目中导入src目录下的文件
     resolve: {
       alias: {
-        "/@": pathResolve("src"),
+        "@": pathResolve("src"),
       }
   },
   server: {
