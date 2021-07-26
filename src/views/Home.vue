@@ -17,6 +17,9 @@
           sm:text-sm
           border border-gray-300
           rounded-md
+          font-bold
+          leading-tight
+          text-gray-900
         "
         v-model="value"
         @click.enter="getTrans()"
@@ -183,6 +186,13 @@
         ⌘ + 1
       </button>
       <h1 class="font-bold leading-tight text-gray-900">
+        <!-- <img :class="$style.icon" :src="iconMaps[name]"> -->
+        <img
+          class="h-8 w-8 pr-2 rounded-full inline-block"
+          src="@/assets/soundHover.svg"
+          alt=""
+          @click.stop="openSound"
+        />
         {{ result.text }}
       </h1>
     </div>
@@ -235,11 +245,13 @@ import Vuex from 'vuex'
 // import { translate } from './../google-translate-cn-api/lib/index.js'
 export default defineComponent({
   data: () => ({
+    timer:null,
     value: '',
     tips: false,
     isExactActive: 0,
     showProfileMenu: false,
     links: [
+      { text: '自动', to: 'auto' },
       { text: '英文', to: 'en' },
       { text: '中文', to: 'zh-cn' },
     ],
@@ -266,12 +278,12 @@ export default defineComponent({
         console.log('用户进入插件', code, type, payload)
         utools &&
           utools.setSubInput(({ text }) => {
-            if(text){
+            if (text) {
               this.value = text
             }
           }, '翻译')
         if (payload) {
-           this.value = payload
+          this.value = payload
         }
         if (this.value) {
           setTimeout(() => {
@@ -283,6 +295,12 @@ export default defineComponent({
   watch: {
     value(val) {
       if (val) {
+        if (this.timer) {
+          clearTimeout(this.timer)
+        }
+        this.timer = setTimeout(() => {
+          this.getTrans();
+        }, 500)
         //  utools &&
         //     utools.setSubInput(({ text }) => {
         //       this.value = text
@@ -294,12 +312,42 @@ export default defineComponent({
     },
   },
   methods: {
-    getTrans(i = this.isExactActive, name = { text: '英文', to: 'en' }) {
+    // 播放声音
+    openSound() {
+      console.log('🐛 播放声音', 22)
+      this.$store.dispatch('GOOGLE_SOUND')
+    },
+    // 判断中英字符个数
+    countnums(strings) {
+      var trim = (str) =>
+        (str || '').replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, '') //+表示匹配一次或多次，|表示或者，\s和\u00A0匹配空白字符，/^以……开头，$以……结尾，/g全局匹配,/i忽略大小写
+      let _str = trim(strings) //去除字符串的左右两边空格
+      var strlength = _str.length
+      if (!strlength) {
+        //如果字符串长度为零，返回零
+        return 0
+      }
+      var chinese = _str.match(/[\u4e00-\u9fa5]/g) //匹配中文，match返回包含中文的数组
+      return (
+        strlength - (chinese && chinese.length) > (chinese && chinese.length)
+      ) //计算字符个数
+    },
+    getTrans(i = this.isExactActive, name = { text: '英文', to: 'auto' }) {
       this.isExactActive = i
       localStorage.setItem('language', name.to)
       if (this.value) {
         this.$store.commit('setKeyword', this.value)
         this.$store.commit('setWebLanguage', name.to)
+        console.log(name.to === 'auto', this.countnums(this.value), '88')
+        if (name.to === 'auto') {
+          if (this.countnums(this.value)) {
+            localStorage.setItem('language', 'zh-cn')
+            this.$store.commit('setWebLanguage', 'zh-cn')
+          } else {
+            localStorage.setItem('language', 'en')
+            this.$store.commit('setWebLanguage', 'en')
+          }
+        }
         this.translate()
       }
     },

@@ -24,7 +24,7 @@ export default defineConfig({
     //反向代理配置，注意rewrite写法，开始没看文档在这里踩了坑
     proxy: {
       '/api': {
-          target: 'http://translate.google.cn/',
+          target: 'http://translate.google.cn',
           // target: 'https://free-api.heweather.net/',
           secure: false,
           changeOrigin: true,

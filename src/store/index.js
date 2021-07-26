@@ -17,7 +17,7 @@ const store = {
     // 所有语言
     languageLists: [],
     // 访问域名
-    googleHost: process.env.NODE_ENV == 'development' ? 'api' : googleChina,
+    googleHost: process.env.NODE_ENV == 'development' ? '/api' : googleChina,
     // 谷歌 TKK
     googleTKK: '',
     // 单词自动匹配
@@ -333,12 +333,12 @@ const store = {
 // 获取声音
     GOOGLE_SOUND ({ state, commit, dispatch }) {
       commit('stopSound')
-      dispatch('GET_GOOGLE_TK', state.keyword).then(tk => {
+      dispatch('GET_GOOGLE_TK', state.result.text).then(tk => {
         fetchGoogleSound({
           tk,
           host: state.googleHost,
           toLanguage: state.autoFromLanguage || 'en',
-          keyword: state.keyword,
+          keyword: state.result.text,
           speed: state.speed,
         }).then(arraybuffer => {
           const ac = new (window.AudioContext || window.webkitAudioContext)()
